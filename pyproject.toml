@@ -1,7 +1,72 @@
 [project]
 name = "playwright-byob"
 version = "0.1.0"
-description = "Add your description here"
+description = "Playwright but bring your own browser"
+authors = [{ name = "Nan Xiao", email = "me@nanx.me" }]
 readme = "README.md"
-requires-python = ">=3.14"
-dependencies = []
+dependencies = ["playwright>=1.60.0"]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+
+    "Intended Audience :: Developers",
+
+    "Topic :: Software Development :: Testing",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+
+    "Operating System :: OS Independent",
+
+    "License :: OSI Approved :: MIT License",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://nanx.me/playwright-byob/"
+Documentation = "https://nanx.me/playwright-byob/"
+Repository = "https://github.com/nanxstats/playwright-byob"
+Issues = "https://github.com/nanxstats/playwright-byob/issues"
+Changelog = "https://github.com/nanxstats/playwright-byob/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/docs", "/scripts", "/AGENTS.md", "/uv.lock", "/zensical.toml"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["/docs", "/scripts", "/AGENTS.md", "/uv.lock", "/zensical.toml"]
+
+[dependency-groups]
+dev = [
+    "isort>=8.0.1",
+    "mkdocstrings-python>=2.0.5",
+    "mypy>=2.1.0",
+    "pytest>=9.1.1",
+    "ruff>=0.15.19",
+    "zensical>=0.0.46",
+]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
