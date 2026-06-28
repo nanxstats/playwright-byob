@@ -1,0 +1,87 @@
+[project]
+site_name = "playwright-byob"
+site_description = "Playwright but bring your own browser"
+site_author = "Nan Xiao"
+site_url = "https://nanx.me/playwright-byob/"
+repo_url = "https://github.com/nanxstats/playwright-byob"
+repo_name = "nanxstats/playwright-byob"
+edit_uri = "edit/main/docs/"
+copyright = """
+Copyright &copy; 2026 playwright-byob authors
+"""
+
+nav = [
+    { "Home" = "index.md" },
+    { "Articles" = [
+        "articles/usage.md",
+    ] },
+    { "API reference" = [
+        "reference/index.md",
+    ] },
+    { "Changelog" = "changelog.md" },
+]
+
+extra_css = ["stylesheets/extra.css"]
+
+# ----------------------------------------------------------------------------
+# Section for configuring theme options
+# ----------------------------------------------------------------------------
+[project.theme]
+language = "en"
+font = false
+
+features = [
+    "announce.dismiss",
+    "content.action.edit",
+    "content.action.view",
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    "content.footnote.tooltips",
+    "content.tabs.link",
+    "content.tooltips",
+    "header.autohide",
+    #"navigation.expand",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    #"navigation.instant.progress",
+    "navigation.path",
+    #"navigation.prune",
+    "navigation.sections",
+    #"navigation.tabs",
+    #"navigation.tabs.sticky",
+    "navigation.top",
+    "navigation.tracking",
+    "search.highlight",
+    #"toc.follow",
+    #"toc.integrate",
+]
+
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+# ----------------------------------------------------------------------------
+# Section for configuring mkdocstrings plugin
+# ----------------------------------------------------------------------------
+[project.plugins.mkdocstrings]
+default_handler = "python"
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+inherited_members = true
+show_root_heading = true
+show_source = false
