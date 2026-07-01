@@ -55,6 +55,9 @@ dev = [
     "zensical>=0.0.46",
 ]
 
+[tool.ruff]
+exclude = ["vendor", ".venv"]
+
 [tool.ruff.lint]
 select = [
     # pycodestyle
@@ -70,3 +73,10 @@ select = [
     # isort
     "I",
 ]
+
+[tool.isort]
+profile = "black"
+skip = ["vendor", ".venv"]
+
+[tool.mypy]
+exclude = ["vendor/"]

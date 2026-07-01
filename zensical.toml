@@ -1,6 +1,6 @@
 [project]
 site_name = "playwright-byob"
-site_description = "Playwright but bring your own browser"
+site_description = "Bring your own browser to Playwright"
 site_author = "Nan Xiao"
 site_url = "https://nanx.me/playwright-byob/"
 repo_url = "https://github.com/nanxstats/playwright-byob"
