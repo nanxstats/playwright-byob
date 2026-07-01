@@ -70,3 +70,13 @@ select = [
     # isort
     "I",
 ]
+
+[tool.isort]
+profile = "black"
+skip = ["vendor", ".venv"]
+
+[tool.mypy]
+exclude = ["vendor/"]
+
+[tool.ruff]
+exclude = ["vendor", ".venv"]
