@@ -76,7 +76,7 @@ def chrome_executable_candidates(
     is returned first.
     """
     platform = sys_platform or sys.platform
-    environ = env or os.environ
+    environ = os.environ if env is None else env
     candidates: list[Path] = []
 
     env_path = environ.get(CHROME_PATH_ENV)
@@ -84,18 +84,19 @@ def chrome_executable_candidates(
         candidates.append(Path(env_path).expanduser())
 
     if platform == "darwin":
+        candidates.append(
+            Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+        )
         home = _home_path(environ)
-        candidates.extend(
-            [
-                Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        if home is not None:
+            candidates.append(
                 home
                 / "Applications"
                 / "Google Chrome.app"
                 / "Contents"
                 / "MacOS"
-                / "Google Chrome",
-            ]
-        )
+                / "Google Chrome"
+            )
     elif platform.startswith("win"):
         for key in ("LOCALAPPDATA", "PROGRAMFILES", "PROGRAMFILES(X86)"):
             root = environ.get(key)
@@ -109,7 +110,10 @@ def chrome_executable_candidates(
             "google-chrome-stable",
             "chrome",
         ):
-            found = shutil.which(command, path=environ.get("PATH"))
+            found = shutil.which(
+                command,
+                path=environ.get("PATH") if env is None else environ.get("PATH", ""),
+            )
             if found:
                 candidates.append(Path(found))
         candidates.extend(
@@ -160,7 +164,7 @@ def chrome_user_data_dir_candidates(
     named ``Default``, ``Profile 1``, and so on.
     """
     platform = sys_platform or sys.platform
-    environ = env or os.environ
+    environ = os.environ if env is None else env
     candidates: list[Path] = []
 
     env_path = environ.get(USER_DATA_DIR_ENV)
@@ -168,19 +172,19 @@ def chrome_user_data_dir_candidates(
         candidates.append(Path(env_path).expanduser())
 
     if platform == "darwin":
-        candidates.append(
-            _home_path(environ)
-            / "Library"
-            / "Application Support"
-            / "Google"
-            / "Chrome"
-        )
+        home = _home_path(environ)
+        if home is not None:
+            candidates.append(
+                home / "Library" / "Application Support" / "Google" / "Chrome"
+            )
     elif platform.startswith("win"):
         local_app_data = environ.get("LOCALAPPDATA")
         if local_app_data:
             candidates.append(Path(local_app_data) / "Google" / "Chrome" / "User Data")
     else:
-        candidates.append(_home_path(environ) / ".config" / "google-chrome")
+        home = _home_path(environ)
+        if home is not None:
+            candidates.append(home / ".config" / "google-chrome")
 
     return _dedupe_paths(candidates)
 
@@ -236,7 +240,7 @@ def build_chrome_launch_config(
     most defaults. Use ``args`` for additional Chrome flags, or set
     ``default_args=False`` to opt out of this package's default Chrome flags.
     """
-    environ = env or os.environ
+    environ = os.environ if env is None else env
     resolved_user_data_dir = _resolve_user_data_dir(
         user_data_dir,
         sys_platform=sys_platform,
@@ -480,11 +484,11 @@ def _coerce_optional_path(value: PathSetting) -> Path | None:
     return Path(value).expanduser()
 
 
-def _home_path(env: Mapping[str, str]) -> Path:
+def _home_path(env: Mapping[str, str]) -> Path | None:
     home = env.get("HOME") or env.get("USERPROFILE")
     if home:
         return Path(home).expanduser()
-    return Path.home()
+    return None
 
 
 def _dedupe_paths(paths: Sequence[Path]) -> tuple[Path, ...]:

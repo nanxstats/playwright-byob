@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+import playwright_byob._chrome as chrome_module
 from playwright_byob import (
     CHROME_PATH_ENV,
     DEFAULT_IGNORE_DEFAULT_ARGS,
@@ -86,6 +87,31 @@ def test_chrome_user_data_dir_candidates_are_platform_specific(tmp_path: Path) -
     )
     assert linux_candidates == (tmp_path / ".config" / "google-chrome",)
     assert windows_candidates == (tmp_path / "Google" / "Chrome" / "User Data",)
+
+
+def test_empty_env_does_not_fall_back_to_process_home_or_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    which_paths: list[str | None] = []
+
+    def fake_which(command: str, path: str | None = None) -> str | None:
+        del command
+        which_paths.append(path)
+        return "/real-path/chrome" if path is None else None
+
+    monkeypatch.setattr(chrome_module.shutil, "which", fake_which)
+
+    executable_candidates = chrome_executable_candidates(sys_platform="linux", env={})
+    user_data_candidates = chrome_user_data_dir_candidates(sys_platform="linux", env={})
+
+    assert which_paths == ["", "", ""]
+    assert Path("/real-path/chrome") not in executable_candidates
+    assert user_data_candidates == ()
+
+
+def test_build_config_empty_env_does_not_use_real_user_profile() -> None:
+    with pytest.raises(ChromeProfileNotFoundError):
+        build_chrome_launch_config(browser_path=None, sys_platform="linux", env={})
 
 
 def test_detect_chrome_executable_checks_explicit_existing_path(tmp_path: Path) -> None:
