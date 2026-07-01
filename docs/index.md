@@ -8,26 +8,70 @@
 [![Documentation](https://github.com/nanxstats/playwright-byob/actions/workflows/docs.yml/badge.svg)](https://nanx.me/playwright-byob/)
 ![License](https://img.shields.io/pypi/l/playwright-byob)
 
-Playwright but bring your own browser.
+Bring your own browser to Playwright.
+
+playwright-byob is a tiny Python helper for launching Playwright against the
+real Google Chrome installation and profile already present on a machine.
+It keeps the API close to Playwright, but chooses practical defaults for headed,
+persistent Chrome automation.
 
 ## Installation
-
-You can install playwright-byob from PyPI:
 
 ```bash
 pip install playwright-byob
 ```
 
-If your project is managed with `uv`, add it as a dependency:
+With `uv`:
 
 ```bash
 uv add playwright-byob
 ```
 
-Or install the development version from GitHub:
+## Quick start
 
-```bash
-git clone https://github.com/nanxstats/playwright-byob.git
-cd playwright-byob
-python3 -m pip install -e .
+```python
+from playwright.sync_api import sync_playwright
+from playwright_byob import launch_chrome
+
+with sync_playwright() as p:
+    context = launch_chrome(p)
+    page = context.new_page()
+    page.goto("https://example.com")
+    print(page.title())
+    context.close()
 ```
+
+The default launch uses installed Chrome when detected, falls back to
+Playwright's `channel="chrome"`, opens headed, uses the platform Chrome user
+data directory, selects the `Default` profile, disables Playwright's fixed
+viewport, and removes the `--enable-automation` default argument.
+
+## Customize the browser or profile
+
+```python
+from playwright.sync_api import sync_playwright
+from playwright_byob import launch_chrome
+
+with sync_playwright() as p:
+    context = launch_chrome(
+        p,
+        browser_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        user_data_dir="~/Library/Application Support/Google/Chrome",
+        profile_directory="Profile 1",
+        args=["--window-size=1440,1000"],
+        timeout=30_000,
+    )
+```
+
+You can also use environment variables:
+
+- `PLAYWRIGHT_BYOB_CHROME_PATH`
+- `PLAYWRIGHT_BYOB_USER_DATA_DIR`
+- `PLAYWRIGHT_BYOB_PROFILE_DIRECTORY`
+
+## Privacy note
+
+A real Chrome profile can contain cookies, local storage, saved sessions,
+and other sensitive state, **so use this intentionally**.
+Tests in this project never read or launch a real user profile.
+They use temporary directories and fake Playwright objects.
