@@ -1,4 +1,4 @@
-"""Bring your own Google Chrome browser to Playwright."""
+"""Bring your own browser to Playwright."""
 
 from ._chrome import (
     CHROME_PATH_ENV,
