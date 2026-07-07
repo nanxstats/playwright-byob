@@ -2,18 +2,13 @@
 
 ## playwright-byob 0.1.1
 
-### Documentation
-
-- Document the local integration test and its privacy-preserving temporary
-  Chrome user data directory.
-
 ### Testing
 
 - Add a macOS-only local integration test that launches installed Google Chrome
   through `launch_chrome()`, drives a small local HTML app, and verifies cookie
-  and local storage persistence across browser sessions.
+  and local storage persistence across browser sessions (#6).
 - Register a pytest `integration` marker for tests that launch an installed
-  browser and are skipped in CI.
+  browser and are skipped in CI (#6).
 
 ## playwright-byob 0.1.0
 
