@@ -67,6 +67,85 @@ with sync_playwright() as p:
 Set `profile_directory=None` if the `user_data_dir` already points at an isolated
 profile root and you do not want to pass Chrome's `--profile-directory` flag.
 
+## Recommended profile patterns
+
+There are two separate decisions:
+
+- which Chrome binary to launch;
+- which browser profile state to use.
+
+playwright-byob helps with the first decision. It can use the installed Chrome
+binary without requiring a Playwright Chromium download. For the second decision,
+prefer the least-sensitive profile state that works for the task.
+
+### Installed Chrome with a temporary profile
+
+This is often the best default for scripts that can log in during the run. It
+uses the installed Chrome binary, but stores browser state in a temporary
+directory that is removed after the context closes.
+
+```python
+import tempfile
+from playwright.sync_api import sync_playwright
+from playwright_byob import launch_chrome
+
+with sync_playwright() as p:
+    with tempfile.TemporaryDirectory() as user_data_dir:
+        context = launch_chrome(
+            p,
+            user_data_dir=user_data_dir,
+            profile_directory=None,
+        )
+        page = context.new_page()
+        page.goto("https://example.com/login")
+        # Fill the login form here.
+        context.close()
+```
+
+### Installed Chrome with a dedicated automation profile
+
+Use this when repeated login is expensive and the site tolerates a persistent
+automation profile. Create the profile intentionally and avoid using it for
+daily browsing.
+
+```python
+context = launch_chrome(
+    p,
+    user_data_dir="~/Library/Application Support/Google/Chrome",
+    profile_directory="Profile 2",
+)
+```
+
+### Installed Chrome with a real user profile
+
+This is the most convenient option, and also the most fragile and sensitive.
+It can work for local one-off automation, but Chrome or the account provider may
+react to automation by showing verification prompts. Chrome can also lock a
+profile that is already open in a normal browser window, leaving automation
+unable to control the launched profile.
+
+### Export authenticated state
+
+Playwright's authentication guide recommends saving authenticated browser state
+under a gitignored directory such as `playwright/.auth` and treating those files
+as secrets. You can export state from a playwright-byob context after logging in:
+
+```python
+from pathlib import Path
+
+auth_file = Path("playwright/.auth/user.json")
+auth_file.parent.mkdir(parents=True, exist_ok=True)
+
+context.storage_state(path=auth_file)
+```
+
+Persistent contexts created by `launch_persistent_context()` do not accept
+Playwright's `storage_state` option at launch time. That means
+`launch_chrome()` cannot directly start from a storage-state JSON file.
+The JSON state is still useful when a later workflow uses standard Playwright
+contexts, or when you need an explicit, reviewable artifact for cookies and
+local storage.
+
 ## Environment variables
 
 These variables are useful for local scripts and CI matrices:

@@ -1,5 +1,15 @@
 # Changelog
 
+## playwright-byob (development version)
+
+### Documentation
+
+- Clarify that using installed Chrome and using a real user profile are separate
+  choices, and document safer profile patterns such as temporary profiles and
+  dedicated automation profiles (#9).
+- Document the relationship between persistent Chrome contexts and Playwright's
+  storage-state authentication files (#9).
+
 ## playwright-byob 0.1.1
 
 ### Testing
