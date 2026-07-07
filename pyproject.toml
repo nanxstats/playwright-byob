@@ -1,6 +1,6 @@
 [project]
 name = "playwright-byob"
-version = "0.1.0"
+version = "0.1.1"
 description = "Playwright but bring your own browser"
 authors = [{ name = "Nan Xiao", email = "me@nanx.me" }]
 readme = "README.md"

@@ -10,6 +10,10 @@
 - Register a pytest `integration` marker for tests that launch an installed
   browser and are skipped in CI (#6).
 
+### Documentation
+
+- Move privacy and local integration testing guidance into a dedicated article (#8).
+
 ## playwright-byob 0.1.0
 
 ### New features
