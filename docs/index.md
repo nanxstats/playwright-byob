@@ -75,3 +75,7 @@ A real Chrome profile can contain cookies, local storage, saved sessions,
 and other sensitive state, **so use this intentionally**.
 Tests in this project never read or launch a real user profile.
 They use temporary directories and fake Playwright objects.
+
+The local integration test is macOS-only and skipped in CI. It launches the
+installed Chrome executable with an isolated temporary user data directory,
+then verifies cookie and local storage persistence across two browser sessions.

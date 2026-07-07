@@ -80,3 +80,8 @@ skip = ["vendor", ".venv"]
 
 [tool.mypy]
 exclude = ["vendor/"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: local tests that launch an installed browser and skip in CI.",
+]

@@ -1,5 +1,15 @@
 # Changelog
 
+## playwright-byob 0.1.1
+
+### Testing
+
+- Add a macOS-only local integration test that launches installed Google Chrome
+  through `launch_chrome()`, drives a small local HTML app, and verifies cookie
+  and local storage persistence across browser sessions (#6).
+- Register a pytest `integration` marker for tests that launch an installed
+  browser and are skipped in CI (#6).
+
 ## playwright-byob 0.1.0
 
 ### New features

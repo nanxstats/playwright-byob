@@ -11,6 +11,8 @@ the public API small, typed, and close to Playwright's own concepts.
 - Never launch or inspect a real user Chrome profile in tests.
 - Tests must use temporary directories, explicit fake paths, and fake Playwright
   objects.
+- Integration tests that launch Chrome must skip CI, avoid real user profile
+  paths, and use isolated temporary user data directories.
 - Do not add fixtures that read cookies, local storage, browser history, or other
   profile contents.
 - When adding examples, clearly state that real profiles can contain sensitive
