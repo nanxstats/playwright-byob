@@ -14,6 +14,7 @@ nav = [
     { "Home" = "index.md" },
     { "Articles" = [
         "articles/usage.md",
+        "articles/privacy.md",
     ] },
     { "API reference" = [
         "reference/index.md",

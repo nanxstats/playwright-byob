@@ -1,0 +1,37 @@
+# Privacy
+
+playwright-byob is designed to launch real Google Chrome with persistent browser
+state. That is useful for local automation, but it also means profile handling
+needs clear boundaries.
+
+## Privacy and safety
+
+A real Chrome profile can include cookies, local storage, extensions, saved
+sessions, and other sensitive state. Use real profiles intentionally, and do not
+use a personal profile in automated tests.
+
+Prefer temporary directories, purpose-built Chrome profiles, or mock Playwright
+objects when verifying integration code. Tests in this project must not read
+cookies, local storage, history, or other data from a real user Chrome profile.
+
+Chrome may also lock a profile that is already open in a normal browser window.
+For reliable automation, use a dedicated Chrome profile or close the matching
+Chrome profile before launching Playwright.
+
+## Local integration testing
+
+The project includes a macOS-only integration test for installed Chrome:
+
+```bash
+uv run pytest -m integration
+```
+
+The test is skipped in CI, outside macOS, and when Google Chrome is not found.
+It serves a local HTML page, launches installed Chrome through
+`launch_chrome()`, writes a cookie and local storage item, closes the browser,
+then launches Chrome again to verify that state persisted.
+
+The test uses an isolated temporary user data directory and passes
+`profile_directory=None`, so it does not launch or inspect a real user Chrome
+profile. The temporary directory is managed by pytest and cleaned up after the
+test run.

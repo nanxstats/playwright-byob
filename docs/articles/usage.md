@@ -114,26 +114,3 @@ print(config.to_playwright_kwargs())
 
 This is the recommended pattern for CI tests that do not have Google Chrome
 installed.
-
-## Local integration testing
-
-The project includes a macOS-only integration test for installed Chrome:
-
-```bash
-uv run pytest -m integration
-```
-
-The test is skipped in CI and when Google Chrome is not found. It uses a local
-HTML page and an isolated temporary user data directory, so it does not launch
-or inspect a real user Chrome profile.
-
-## Privacy and safety
-
-A real Chrome profile can include cookies, local storage, extensions, saved
-sessions, and other sensitive state. Do not use a personal profile in automated
-tests. Prefer temporary directories, purpose-built Chrome profiles, or fake
-Playwright objects when verifying integration code.
-
-Chrome may also lock a profile that is already open in a normal browser window.
-For reliable automation, use a dedicated Chrome profile or close the matching
-Chrome profile before launching Playwright.
