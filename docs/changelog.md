@@ -2,6 +2,10 @@
 
 ## playwright-byob (development version)
 
+### Dependencies
+
+- Lower the minimum Playwright version to 1.50.0 (#10).
+
 ### Documentation
 
 - Clarify that using installed Chrome and using a real user profile are separate
