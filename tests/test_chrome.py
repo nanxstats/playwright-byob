@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +55,31 @@ class FakeAsyncChromium:
 class FakeAsyncPlaywright:
     def __init__(self) -> None:
         self.chromium = FakeAsyncChromium()
+
+
+def _shared_launch_option_defaults(
+    function: Callable[..., Any],
+) -> tuple[tuple[str, object], ...]:
+    """Return shared launch option names and defaults, regardless of param kind."""
+    signature = inspect.signature(function)
+    ignored_names = {"playwright", "sys_platform", "env"}
+    ignored_kinds = {
+        inspect.Parameter.VAR_POSITIONAL,
+        inspect.Parameter.VAR_KEYWORD,
+    }
+    return tuple(
+        (name, parameter.default)
+        for name, parameter in signature.parameters.items()
+        if name not in ignored_names and parameter.kind not in ignored_kinds
+    )
+
+
+def test_public_launch_option_signatures_stay_in_sync() -> None:
+    """Guard against silent drift in duplicated public launch option signatures."""
+    shared_build_options = _shared_launch_option_defaults(build_chrome_launch_config)
+
+    assert _shared_launch_option_defaults(launch_chrome) == shared_build_options
+    assert _shared_launch_option_defaults(async_launch_chrome) == shared_build_options
 
 
 def test_chrome_executable_candidates_prefer_env_path(tmp_path: Path) -> None:
