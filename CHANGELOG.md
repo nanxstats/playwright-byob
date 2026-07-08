@@ -2,6 +2,13 @@
 
 ## playwright-byob (development version)
 
+### Improvements
+
+- Raise `ChromeNotFoundError` when automatic Chrome executable detection finds
+  nothing, with a message listing checked paths and
+  `PLAYWRIGHT_BYOB_CHROME_PATH`. Pass `browser_path=None` to opt into
+  Playwright's `channel="chrome"` path explicitly (#15).
+
 ### Testing
 
 - Add a signature drift regression test to keep the shared launch options for
