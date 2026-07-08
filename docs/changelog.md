@@ -1,6 +1,6 @@
 # Changelog
 
-## playwright-byob (development version)
+## playwright-byob 0.1.2
 
 ### Dependencies
 
