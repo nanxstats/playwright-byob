@@ -4,6 +4,9 @@
 
 ### Improvements
 
+- Raise `ChromeProfileInUseError` before launching when the resolved Chrome
+  user data directory contains known profile lock artifacts. Pass
+  `check_profile_lock=False` to skip the advisory stale lock check (#14).
 - Raise `ChromeNotFoundError` when automatic Chrome executable detection finds
   nothing, with a message listing checked paths and
   `PLAYWRIGHT_BYOB_CHROME_PATH`. Pass `browser_path=None` to opt into
