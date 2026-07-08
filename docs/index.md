@@ -41,10 +41,11 @@ with sync_playwright() as p:
     context.close()
 ```
 
-The default launch uses installed Chrome when detected, falls back to
-Playwright's `channel="chrome"`, opens headed, uses the platform Chrome user
-data directory, selects the `Default` profile, disables Playwright's fixed
+The default launch uses installed Chrome, opens headed, uses the platform Chrome
+user data directory, selects the `Default` profile, disables Playwright's fixed
 viewport, and removes the `--enable-automation` default argument.
+If Chrome is not detected, it raises `ChromeNotFoundError`; set
+`PLAYWRIGHT_BYOB_CHROME_PATH` or pass `browser_path=...` explicitly.
 
 ## Customize the browser or profile
 
@@ -68,6 +69,9 @@ You can also use environment variables:
 - `PLAYWRIGHT_BYOB_CHROME_PATH`
 - `PLAYWRIGHT_BYOB_USER_DATA_DIR`
 - `PLAYWRIGHT_BYOB_PROFILE_DIRECTORY`
+
+Pass `browser_path=None` to skip installed Chrome detection and use
+Playwright's `channel="chrome"` path instead.
 
 ## Recommended profile patterns
 
