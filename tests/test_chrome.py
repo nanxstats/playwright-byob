@@ -60,13 +60,17 @@ class FakeAsyncPlaywright:
 def _shared_launch_option_defaults(
     function: Callable[..., Any],
 ) -> tuple[tuple[str, object], ...]:
-    """Return public launch option names and defaults shared by all entry points."""
+    """Return shared launch option names and defaults, regardless of param kind."""
     signature = inspect.signature(function)
+    ignored_names = {"playwright", "sys_platform", "env"}
+    ignored_kinds = {
+        inspect.Parameter.VAR_POSITIONAL,
+        inspect.Parameter.VAR_KEYWORD,
+    }
     return tuple(
         (name, parameter.default)
         for name, parameter in signature.parameters.items()
-        if parameter.kind is inspect.Parameter.KEYWORD_ONLY
-        and name not in {"sys_platform", "env"}
+        if name not in ignored_names and parameter.kind not in ignored_kinds
     )
 
 
