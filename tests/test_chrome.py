@@ -208,6 +208,38 @@ def test_build_config_can_use_playwright_chrome_channel_without_detection(
     assert options == {"channel": "chrome", "headless": False, "no_viewport": False}
 
 
+def test_build_config_rejects_missing_auto_browser_with_checked_paths(
+    tmp_path: Path,
+) -> None:
+    env = {
+        "LOCALAPPDATA": str(tmp_path / "LocalAppData"),
+        "PROGRAMFILES": str(tmp_path / "Program Files"),
+        "PROGRAMFILES(X86)": str(tmp_path / "Program Files x86"),
+    }
+    checked_paths = (
+        tmp_path / "LocalAppData" / "Google" / "Chrome" / "Application" / "chrome.exe",
+        tmp_path / "Program Files" / "Google" / "Chrome" / "Application" / "chrome.exe",
+        tmp_path
+        / "Program Files x86"
+        / "Google"
+        / "Chrome"
+        / "Application"
+        / "chrome.exe",
+    )
+
+    with pytest.raises(ChromeNotFoundError) as exc_info:
+        build_chrome_launch_config(
+            user_data_dir=tmp_path,
+            sys_platform="win32",
+            env=env,
+        )
+
+    message = str(exc_info.value)
+    assert f"Checked {CHROME_PATH_ENV}" in message
+    for path in checked_paths:
+        assert str(path) in message
+
+
 def test_build_config_honors_environment_overrides(tmp_path: Path) -> None:
     chrome = tmp_path / "chrome"
     chrome.write_text("fake chrome", encoding="utf-8")

@@ -37,7 +37,7 @@ class PlaywrightByobError(RuntimeError):
 
 
 class ChromeNotFoundError(PlaywrightByobError):
-    """Raised when an explicitly requested Chrome executable cannot be found."""
+    """Raised when a requested Chrome executable cannot be found."""
 
 
 class ChromeProfileNotFoundError(PlaywrightByobError):
@@ -229,8 +229,7 @@ def build_chrome_launch_config(
     Defaults are intentionally tuned for using installed Google Chrome in headed
     mode with a persistent profile:
 
-    - use the installed Chrome executable when it can be found;
-    - otherwise ask Playwright to use the branded ``chrome`` channel;
+    - use the installed Chrome executable;
     - use the existing platform Chrome user data directory;
     - select the ``Default`` Chrome profile directory;
     - run headed with Playwright's fixed viewport disabled;
@@ -239,6 +238,8 @@ def build_chrome_launch_config(
     Extra ``launch_options`` are passed directly to Playwright and can override
     most defaults. Use ``args`` for additional Chrome flags, or set
     ``default_args=False`` to opt out of this package's default Chrome flags.
+    Set ``browser_path=None`` to skip Chrome executable detection and ask
+    Playwright to use ``channel`` instead.
     """
     environ = os.environ if env is None else env
     resolved_user_data_dir = _resolve_user_data_dir(
@@ -431,11 +432,21 @@ def _resolve_browser_path(
         msg = f"Chrome executable from {CHROME_PATH_ENV} does not exist: {env_browser}"
         raise ChromeNotFoundError(msg)
 
-    return detect_chrome_executable(
-        "auto",
+    candidates = chrome_executable_candidates(
         sys_platform=sys_platform,
         env=env,
     )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    msg = (
+        "Could not find an installed Google Chrome executable. "
+        f"Set {CHROME_PATH_ENV} or pass browser_path=... explicitly. "
+        f"Checked {CHROME_PATH_ENV} and candidate paths: "
+        f"{_format_checked_paths(candidates)}."
+    )
+    raise ChromeNotFoundError(msg)
 
 
 def _resolve_profile_directory(
@@ -500,3 +511,7 @@ def _dedupe_paths(paths: Sequence[Path]) -> tuple[Path, ...]:
             seen.add(key)
             result.append(path)
     return tuple(result)
+
+
+def _format_checked_paths(paths: Sequence[Path]) -> str:
+    return ", ".join(str(path) for path in paths) or "(none)"
