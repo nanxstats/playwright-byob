@@ -633,7 +633,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "playwright", specifier = ">=1.60.0" }]
+requires-dist = [{ name = "playwright", specifier = ">=1.50.0" }]
 
 [package.metadata.requires-dev]
 dev = [
