@@ -44,6 +44,10 @@ class ChromeProfileNotFoundError(PlaywrightByobError):
     """Raised when the default Chrome user data directory cannot be found."""
 
 
+class ChromeProfileInUseError(PlaywrightByobError):
+    """Raised when the Chrome user data directory appears to be locked."""
+
+
 class ConfigurationError(PlaywrightByobError, ValueError):
     """Raised when launch configuration is invalid."""
 
@@ -220,6 +224,7 @@ def build_chrome_launch_config(
     default_args: bool = True,
     ignore_default_args: IgnoreDefaultArgs = DEFAULT_IGNORE_DEFAULT_ARGS,
     no_viewport: bool | None = True,
+    check_profile_lock: bool = True,
     sys_platform: str | None = None,
     env: Mapping[str, str] | None = None,
     **launch_options: Any,
@@ -239,7 +244,8 @@ def build_chrome_launch_config(
     most defaults. Use ``args`` for additional Chrome flags, or set
     ``default_args=False`` to opt out of this package's default Chrome flags.
     Set ``browser_path=None`` to skip Chrome executable detection and ask
-    Playwright to use ``channel`` instead.
+    Playwright to use ``channel`` instead. Set ``check_profile_lock=False`` to
+    skip the best-effort check for Chrome profile lock artifacts.
     """
     environ = os.environ if env is None else env
     resolved_user_data_dir = _resolve_user_data_dir(
@@ -247,6 +253,11 @@ def build_chrome_launch_config(
         sys_platform=sys_platform,
         env=environ,
     )
+    if check_profile_lock:
+        _raise_if_profile_locked(
+            resolved_user_data_dir,
+            sys_platform=sys_platform,
+        )
     resolved_profile_directory = _resolve_profile_directory(
         profile_directory,
         env=environ,
@@ -300,6 +311,7 @@ def launch_chrome(
     default_args: bool = True,
     ignore_default_args: IgnoreDefaultArgs = DEFAULT_IGNORE_DEFAULT_ARGS,
     no_viewport: bool | None = True,
+    check_profile_lock: bool = True,
     **launch_options: Any,
 ) -> SyncBrowserContext:
     """Launch a sync Playwright persistent context with installed Chrome.
@@ -326,6 +338,7 @@ def launch_chrome(
         default_args=default_args,
         ignore_default_args=ignore_default_args,
         no_viewport=no_viewport,
+        check_profile_lock=check_profile_lock,
         **launch_options,
     )
     return playwright.chromium.launch_persistent_context(
@@ -346,6 +359,7 @@ async def async_launch_chrome(
     default_args: bool = True,
     ignore_default_args: IgnoreDefaultArgs = DEFAULT_IGNORE_DEFAULT_ARGS,
     no_viewport: bool | None = True,
+    check_profile_lock: bool = True,
     **launch_options: Any,
 ) -> AsyncBrowserContext:
     """Launch an async Playwright persistent context with installed Chrome."""
@@ -359,6 +373,7 @@ async def async_launch_chrome(
         default_args=default_args,
         ignore_default_args=ignore_default_args,
         no_viewport=no_viewport,
+        check_profile_lock=check_profile_lock,
         **launch_options,
     )
     return await playwright.chromium.launch_persistent_context(
@@ -487,6 +502,44 @@ def _build_chrome_args(
     if args:
         launch_args.extend(args)
     return launch_args
+
+
+def _raise_if_profile_locked(
+    user_data_dir: Path,
+    *,
+    sys_platform: str | None,
+) -> None:
+    lock_path = _detect_profile_lock(user_data_dir, sys_platform=sys_platform)
+    if lock_path is None:
+        return
+
+    msg = (
+        "Chrome user data directory appears to be in use: "
+        f"{user_data_dir}. Found Chrome profile lock artifact: {lock_path.name}. "
+        "Close Chrome windows using this profile or pass a separate "
+        "user_data_dir. This check is best-effort; if you know the lock is "
+        "stale, pass check_profile_lock=False."
+    )
+    raise ChromeProfileInUseError(msg)
+
+
+def _detect_profile_lock(
+    user_data_dir: Path,
+    *,
+    sys_platform: str | None,
+) -> Path | None:
+    for artifact in _profile_lock_artifacts(sys_platform=sys_platform):
+        lock_path = user_data_dir / artifact
+        if os.path.lexists(lock_path):
+            return lock_path
+    return None
+
+
+def _profile_lock_artifacts(*, sys_platform: str | None) -> tuple[str, ...]:
+    platform = sys_platform or sys.platform
+    if platform.startswith("win"):
+        return ("lockfile",)
+    return ("SingletonLock", "SingletonSocket")
 
 
 def _coerce_optional_path(value: PathSetting) -> Path | None:

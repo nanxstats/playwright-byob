@@ -15,6 +15,7 @@ from playwright_byob import (
     PROFILE_DIRECTORY_ENV,
     USER_DATA_DIR_ENV,
     ChromeNotFoundError,
+    ChromeProfileInUseError,
     ChromeProfileNotFoundError,
     ConfigurationError,
     async_launch_chrome,
@@ -289,6 +290,56 @@ def test_build_config_does_not_create_or_use_real_profile_in_auto_mode(
     assert not (home / ".config" / "google-chrome").exists()
 
 
+def test_build_config_rejects_locked_linux_or_mac_profile(tmp_path: Path) -> None:
+    lock_path = tmp_path / "SingletonLock"
+    lock_path.write_text("fake lock", encoding="utf-8")
+
+    with pytest.raises(ChromeProfileInUseError) as exc_info:
+        build_chrome_launch_config(
+            browser_path=None,
+            user_data_dir=tmp_path,
+            profile_directory=None,
+            sys_platform="linux",
+        )
+
+    message = str(exc_info.value)
+    assert str(tmp_path) in message
+    assert "SingletonLock" in message
+    assert "Close Chrome" in message
+    assert "separate user_data_dir" in message
+    assert "check_profile_lock=False" in message
+
+
+def test_build_config_rejects_locked_windows_profile(tmp_path: Path) -> None:
+    lock_path = tmp_path / "lockfile"
+    lock_path.write_text("fake lock", encoding="utf-8")
+
+    with pytest.raises(ChromeProfileInUseError) as exc_info:
+        build_chrome_launch_config(
+            browser_path=None,
+            user_data_dir=tmp_path,
+            profile_directory=None,
+            sys_platform="win32",
+        )
+
+    assert "lockfile" in str(exc_info.value)
+
+
+def test_build_config_can_skip_profile_lock_check(tmp_path: Path) -> None:
+    lock_path = tmp_path / "SingletonSocket"
+    lock_path.write_text("fake socket", encoding="utf-8")
+
+    config = build_chrome_launch_config(
+        browser_path=None,
+        user_data_dir=tmp_path,
+        profile_directory=None,
+        check_profile_lock=False,
+        sys_platform="darwin",
+    )
+
+    assert config.user_data_dir == tmp_path
+
+
 def test_build_config_rejects_missing_explicit_browser(tmp_path: Path) -> None:
     with pytest.raises(ChromeNotFoundError):
         build_chrome_launch_config(
@@ -338,6 +389,26 @@ def test_launch_chrome_passes_resolved_config_to_sync_playwright(
             },
         ),
     ]
+
+
+def test_launch_chrome_rejects_locked_profile_before_playwright(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(chrome_module.sys, "platform", "linux")
+    lock_path = tmp_path / "SingletonSocket"
+    lock_path.write_text("fake socket", encoding="utf-8")
+    fake = FakeSyncPlaywright()
+
+    with pytest.raises(ChromeProfileInUseError):
+        launch_chrome(
+            fake,  # type: ignore[arg-type]
+            browser_path=None,
+            user_data_dir=tmp_path,
+            profile_directory=None,
+        )
+
+    assert fake.chromium.calls == []
 
 
 def test_async_launch_chrome_passes_resolved_config_to_async_playwright(
