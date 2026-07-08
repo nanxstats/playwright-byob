@@ -36,7 +36,6 @@ async with async_playwright() as p:
 `launch_chrome()` and `async_launch_chrome()` default to:
 
 - Detecting Google Chrome from common platform locations.
-- Falling back to Playwright's branded `channel="chrome"` when no path is found.
 - Using the platform Chrome user data directory.
 - Selecting the `Default` Chrome profile folder.
 - Launching headed (`headless=False`).
@@ -45,8 +44,12 @@ async with async_playwright() as p:
 - Adding `--start-maximized` for headed sessions.
 - Ignoring Playwright's `--enable-automation` default argument.
 
-If the default Chrome user data directory is not present, the launch helper
-raises `ChromeProfileNotFoundError` instead of silently creating a fake profile.
+If Chrome is not detected, the launch helper raises `ChromeNotFoundError` with
+the checked paths. Set `PLAYWRIGHT_BYOB_CHROME_PATH` or pass `browser_path=...`
+explicitly.
+
+If the default Chrome user data directory is not present, it raises
+`ChromeProfileNotFoundError` instead of silently creating a fake profile.
 
 ## Choose a browser or profile
 
@@ -66,6 +69,9 @@ with sync_playwright() as p:
 
 Set `profile_directory=None` if the `user_data_dir` already points at an isolated
 profile root and you do not want to pass Chrome's `--profile-directory` flag.
+
+Pass `browser_path=None` only when you want to skip installed Chrome detection
+and use Playwright's branded `channel="chrome"` path.
 
 ## Recommended profile patterns
 
@@ -191,5 +197,5 @@ print(config.user_data_dir)
 print(config.to_playwright_kwargs())
 ```
 
-This is the recommended pattern for CI tests that do not have Google Chrome
-installed.
+This explicitly opts into Playwright's `channel="chrome"` path and is the
+recommended pattern for CI tests that do not have Google Chrome installed.
