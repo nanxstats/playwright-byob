@@ -6,7 +6,7 @@
 
 - Add a signature drift regression test to keep the shared launch options for
   `launch_chrome()`, `async_launch_chrome()`, and `build_chrome_launch_config()`
-  aligned while preserving builder-only `sys_platform` and `env` overrides (#17).
+  aligned while preserving builder-only `sys_platform` and `env` overrides (#16).
 
 ## playwright-byob 0.1.2
 
