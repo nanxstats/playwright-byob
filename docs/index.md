@@ -44,8 +44,14 @@ with sync_playwright() as p:
 The default launch uses installed Chrome, opens headed, uses the platform Chrome
 user data directory, selects the `Default` profile, disables Playwright's fixed
 viewport, and removes the `--enable-automation` default argument.
+
 If Chrome is not detected, it raises `ChromeNotFoundError`; set
 `PLAYWRIGHT_BYOB_CHROME_PATH` or pass `browser_path=...` explicitly.
+
+If the resolved user data directory appears to be open in another Chrome
+process, it raises `ChromeProfileInUseError` before launching. This lock check
+is best-effort because stale lock files can remain after a crash; pass
+`check_profile_lock=False` only when you know the lock is stale.
 
 ## Customize the browser or profile
 

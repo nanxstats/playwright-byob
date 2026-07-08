@@ -51,6 +51,14 @@ explicitly.
 If the default Chrome user data directory is not present, it raises
 `ChromeProfileNotFoundError` instead of silently creating a fake profile.
 
+Before launching, the helpers look for Chrome's profile lock artifacts in the
+resolved user data directory: `SingletonLock` and `SingletonSocket` on Linux
+and macOS, or `lockfile` on Windows. If one is present, they raise
+`ChromeProfileInUseError` with a message to close Chrome or use a separate
+`user_data_dir`. `build_chrome_launch_config()` performs the same check.
+This lock check is advisory because stale lock files can remain after Chrome
+crashes. Pass `check_profile_lock=False` only when you know the lock is stale.
+
 ## Choose a browser or profile
 
 ```python
