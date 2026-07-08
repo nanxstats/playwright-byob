@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +57,9 @@ class FakeAsyncPlaywright:
         self.chromium = FakeAsyncChromium()
 
 
-def _shared_launch_option_defaults(function: object) -> tuple[tuple[str, object], ...]:
+def _shared_launch_option_defaults(
+    function: Callable[..., Any],
+) -> tuple[tuple[str, object], ...]:
     """Return public launch option names and defaults shared by all entry points."""
     signature = inspect.signature(function)
     return tuple(
