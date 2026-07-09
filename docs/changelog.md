@@ -4,6 +4,13 @@
 
 ### Improvements
 
+- Change `user_data_dir="auto"` to use a package-owned, non-default Chrome user
+  data directory under the platform app data directory, avoiding Chrome 136+
+  remote debugging restrictions on Chrome stable's platform default profile root
+  (#13).
+- Raise `ChromeRemoteDebuggingBlockedError` before launch when Chrome stable is
+  configured with its platform default user data directory, because Playwright's
+  persistent context depends on Chrome's remote debugging pipe (#13).
 - Raise `ChromeProfileInUseError` before launching when the resolved Chrome
   user data directory contains known profile lock artifacts. Pass
   `check_profile_lock=False` to skip the advisory stale lock check (#14).
@@ -17,6 +24,12 @@
 - Add a signature drift regression test to keep the shared launch options for
   `launch_chrome()`, `async_launch_chrome()`, and `build_chrome_launch_config()`
   aligned while preserving builder-only `sys_platform` and `env` overrides (#16).
+
+### Documentation
+
+- Update README and usage guidance to recommend default, temporary, or custom
+  non-default automation directories instead of the blocked platform Chrome
+  profile root (#13).
 
 ## playwright-byob 0.1.2
 

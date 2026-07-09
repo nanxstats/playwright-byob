@@ -16,7 +16,7 @@ from playwright_byob import (
     USER_DATA_DIR_ENV,
     ChromeNotFoundError,
     ChromeProfileInUseError,
-    ChromeProfileNotFoundError,
+    ChromeRemoteDebuggingBlockedError,
     ConfigurationError,
     async_launch_chrome,
     build_chrome_launch_config,
@@ -138,8 +138,52 @@ def test_empty_env_does_not_fall_back_to_process_home_or_path(
 
 
 def test_build_config_empty_env_does_not_use_real_user_profile() -> None:
-    with pytest.raises(ChromeProfileNotFoundError):
+    with pytest.raises(ConfigurationError) as exc_info:
         build_chrome_launch_config(browser_path=None, sys_platform="linux", env={})
+
+    assert "platform app data directory" in str(exc_info.value)
+
+
+def test_build_config_auto_user_data_dir_uses_platform_app_data(
+    tmp_path: Path,
+) -> None:
+    mac_home = tmp_path / "mac-home"
+    linux_data = tmp_path / "xdg-data"
+    windows_local = tmp_path / "local-app-data"
+
+    mac_config = build_chrome_launch_config(
+        browser_path=None,
+        sys_platform="darwin",
+        env={"HOME": str(mac_home)},
+    )
+    linux_config = build_chrome_launch_config(
+        browser_path=None,
+        sys_platform="linux",
+        env={"XDG_DATA_HOME": str(linux_data), "PATH": ""},
+    )
+    windows_config = build_chrome_launch_config(
+        browser_path=None,
+        sys_platform="win32",
+        env={"LOCALAPPDATA": str(windows_local)},
+    )
+
+    assert mac_config.user_data_dir == (
+        mac_home
+        / "Library"
+        / "Application Support"
+        / "playwright-byob"
+        / "chrome-user-data"
+    )
+    assert linux_config.user_data_dir == (
+        linux_data / "playwright-byob" / "chrome-user-data"
+    )
+    assert windows_config.user_data_dir == (
+        windows_local / "playwright-byob" / "chrome-user-data"
+    )
+    assert "--profile-directory=Default" in mac_config.options["args"]
+    assert not mac_config.user_data_dir.exists()
+    assert not linux_config.user_data_dir.exists()
+    assert not windows_config.user_data_dir.exists()
 
 
 def test_detect_chrome_executable_checks_explicit_existing_path(tmp_path: Path) -> None:
@@ -260,18 +304,101 @@ def test_build_config_honors_environment_overrides(tmp_path: Path) -> None:
     assert "--profile-directory=Profile 2" in options["args"]
 
 
-def test_build_config_rejects_missing_environment_paths(tmp_path: Path) -> None:
+def test_build_config_rejects_missing_environment_browser_path(tmp_path: Path) -> None:
     with pytest.raises(ChromeNotFoundError):
         build_chrome_launch_config(
             user_data_dir=tmp_path,
             env={CHROME_PATH_ENV: str(tmp_path / "missing-chrome")},
         )
 
-    with pytest.raises(ChromeProfileNotFoundError):
+
+def test_build_config_accepts_missing_environment_user_data_dir(
+    tmp_path: Path,
+) -> None:
+    user_data_dir = tmp_path / "missing-profile"
+
+    config = build_chrome_launch_config(
+        browser_path=None,
+        env={USER_DATA_DIR_ENV: str(user_data_dir)},
+    )
+
+    assert config.user_data_dir == user_data_dir
+    assert not user_data_dir.exists()
+
+
+def test_build_config_rejects_platform_default_chrome_root_for_stable_chrome(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    chrome = tmp_path / "google-chrome"
+    chrome.write_text("fake chrome", encoding="utf-8")
+    default_user_data_dir = home / ".config" / "google-chrome"
+
+    with pytest.raises(ChromeRemoteDebuggingBlockedError) as exc_info:
+        build_chrome_launch_config(
+            browser_path=chrome,
+            user_data_dir=default_user_data_dir,
+            sys_platform="linux",
+            env={"HOME": str(home), "PATH": ""},
+        )
+
+    message = str(exc_info.value)
+    assert "Chrome 136" in message
+    assert "--remote-debugging-pipe" in message
+    assert "Chrome stable's platform default profile root" in message
+    assert "user_data_dir='auto'" in message
+    assert "non-default user_data_dir" in message
+    assert "developer.chrome.com/blog/remote-debugging-port" in message
+    assert isinstance(exc_info.value, ConfigurationError)
+
+
+def test_build_config_rejects_environment_default_chrome_root_for_chrome_channel(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    default_user_data_dir = (
+        home / "Library" / "Application Support" / "Google" / "Chrome"
+    )
+
+    with pytest.raises(ChromeRemoteDebuggingBlockedError):
         build_chrome_launch_config(
             browser_path=None,
-            env={USER_DATA_DIR_ENV: str(tmp_path / "missing-profile")},
+            sys_platform="darwin",
+            env={
+                "HOME": str(home),
+                USER_DATA_DIR_ENV: str(default_user_data_dir),
+            },
         )
+
+
+def test_build_config_remote_debugging_guard_is_stable_chrome_only(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    stable_user_data_dir = (
+        home / "Library" / "Application Support" / "Google" / "Chrome"
+    )
+    beta = tmp_path / "Google Chrome Beta"
+    beta.write_text("fake beta chrome", encoding="utf-8")
+
+    beta_config = build_chrome_launch_config(
+        browser_path=beta,
+        user_data_dir=stable_user_data_dir,
+        profile_directory=None,
+        sys_platform="darwin",
+        env={"HOME": str(home)},
+    )
+    beta_channel_config = build_chrome_launch_config(
+        browser_path=None,
+        channel="chrome-beta",
+        user_data_dir=stable_user_data_dir,
+        profile_directory=None,
+        sys_platform="darwin",
+        env={"HOME": str(home)},
+    )
+
+    assert beta_config.user_data_dir == stable_user_data_dir
+    assert beta_channel_config.options["channel"] == "chrome-beta"
 
 
 def test_build_config_does_not_create_or_use_real_profile_in_auto_mode(
@@ -280,13 +407,16 @@ def test_build_config_does_not_create_or_use_real_profile_in_auto_mode(
     home = tmp_path / "home"
     home.mkdir()
 
-    with pytest.raises(ChromeProfileNotFoundError):
-        build_chrome_launch_config(
-            browser_path=None,
-            sys_platform="linux",
-            env={"HOME": str(home), "PATH": ""},
-        )
+    config = build_chrome_launch_config(
+        browser_path=None,
+        sys_platform="linux",
+        env={"HOME": str(home), "PATH": ""},
+    )
 
+    assert config.user_data_dir == (
+        home / ".local" / "share" / "playwright-byob" / "chrome-user-data"
+    )
+    assert not config.user_data_dir.exists()
     assert not (home / ".config" / "google-chrome").exists()
 
 
@@ -406,6 +536,29 @@ def test_launch_chrome_rejects_locked_profile_before_playwright(
             browser_path=None,
             user_data_dir=tmp_path,
             profile_directory=None,
+        )
+
+    assert fake.chromium.calls == []
+
+
+def test_launch_chrome_rejects_platform_default_profile_before_playwright(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(chrome_module.sys, "platform", "linux")
+    monkeypatch.setenv("HOME", str(home))
+    chrome = tmp_path / "google-chrome"
+    chrome.write_text("fake chrome", encoding="utf-8")
+    default_user_data_dir = home / ".config" / "google-chrome"
+    fake = FakeSyncPlaywright()
+
+    with pytest.raises(ChromeRemoteDebuggingBlockedError):
+        launch_chrome(
+            fake,  # type: ignore[arg-type]
+            browser_path=chrome,
+            user_data_dir=default_user_data_dir,
         )
 
     assert fake.chromium.calls == []

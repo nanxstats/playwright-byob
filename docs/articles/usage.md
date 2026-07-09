@@ -36,20 +36,41 @@ async with async_playwright() as p:
 `launch_chrome()` and `async_launch_chrome()` default to:
 
 - Detecting Google Chrome from common platform locations.
-- Using the platform Chrome user data directory.
-- Selecting the `Default` Chrome profile folder.
+- Using a dedicated `playwright-byob` Chrome user data directory under the
+  platform app data directory.
+- Selecting the `Default` Chrome profile folder inside that directory.
 - Launching headed (`headless=False`).
 - Disabling Playwright's fixed viewport (`no_viewport=True`).
 - Adding `--disable-blink-features=AutomationControlled`.
 - Adding `--start-maximized` for headed sessions.
 - Ignoring Playwright's `--enable-automation` default argument.
 
+The automatic user data directory is:
+
+- macOS: `~/Library/Application Support/playwright-byob/chrome-user-data`
+- Windows: `%LOCALAPPDATA%\playwright-byob\chrome-user-data`
+- Linux: `$XDG_DATA_HOME/playwright-byob/chrome-user-data`, or
+  `~/.local/share/playwright-byob/chrome-user-data`
+
+`build_chrome_launch_config()` resolves this path but does not create it.
+Chrome creates it when Playwright launches the persistent context.
+
 If Chrome is not detected, the launch helper raises `ChromeNotFoundError` with
 the checked paths. Set `PLAYWRIGHT_BYOB_CHROME_PATH` or pass `browser_path=...`
 explicitly.
 
-If the default Chrome user data directory is not present, it raises
-`ChromeProfileNotFoundError` instead of silently creating a fake profile.
+If the platform app data directory cannot be determined, it raises
+`ConfigurationError`. Set `PLAYWRIGHT_BYOB_USER_DATA_DIR` or pass
+`user_data_dir=...` explicitly.
+
+Chrome 136 and newer ignore `--remote-debugging-port` and
+`--remote-debugging-pipe` when the user data directory is Chrome stable's
+platform default profile root. Playwright's `launch_persistent_context()`
+depends on `--remote-debugging-pipe`, so that configuration fails or times out.
+If you explicitly select that root with Chrome stable, playwright-byob
+raises `ChromeRemoteDebuggingBlockedError` before launch. The Chrome team
+documents the restriction at
+<https://developer.chrome.com/blog/remote-debugging-port>.
 
 Before launching, the helpers look for Chrome's profile lock artifacts in the
 resolved user data directory: `SingletonLock` and `SingletonSocket` on Linux
@@ -69,8 +90,8 @@ with sync_playwright() as p:
     context = launch_chrome(
         p,
         browser_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        user_data_dir="~/Library/Application Support/Google/Chrome",
-        profile_directory="Profile 1",
+        user_data_dir="~/Library/Application Support/playwright-byob/work-profile",
+        profile_directory=None,
         timeout=30_000,
     )
 ```
@@ -81,6 +102,12 @@ profile root and you do not want to pass Chrome's `--profile-directory` flag.
 Pass `browser_path=None` only when you want to skip installed Chrome detection
 and use Playwright's branded `channel="chrome"` path.
 
+Do not use Chrome stable's platform default profile root, such as
+`~/Library/Application Support/Google/Chrome`,
+`%LOCALAPPDATA%\Google\Chrome\User Data`, or `~/.config/google-chrome`, as
+`user_data_dir` for Chrome stable. Chrome 136+ ignores the remote debugging pipe
+there even when the path is passed explicitly.
+
 ## Recommended profile patterns
 
 There are two separate decisions:
@@ -90,7 +117,24 @@ There are two separate decisions:
 
 playwright-byob helps with the first decision. It can use the installed Chrome
 binary without requiring a Playwright Chromium download. For the second decision,
-prefer the least-sensitive profile state that works for the task.
+prefer non-default automation state and the least-sensitive data that works for
+the task.
+
+### Installed Chrome with the default automation profile
+
+This is the package default. It uses installed Chrome and stores persistent
+state in playwright-byob's own non-default user data directory.
+
+```python
+from playwright.sync_api import sync_playwright
+from playwright_byob import launch_chrome
+
+with sync_playwright() as p:
+    context = launch_chrome(p)
+    page = context.new_page()
+    page.goto("https://example.com")
+    context.close()
+```
 
 ### Installed Chrome with a temporary profile
 
@@ -116,27 +160,28 @@ with sync_playwright() as p:
         context.close()
 ```
 
-### Installed Chrome with a dedicated automation profile
+### Installed Chrome with a custom automation profile
 
-Use this when repeated login is expensive and the site tolerates a persistent
-automation profile. Create the profile intentionally and avoid using it for
-daily browsing.
+Use this when repeated login is expensive and you want a named automation
+directory. Keep it outside Chrome stable's platform default profile root and
+avoid using it for daily browsing.
 
 ```python
 context = launch_chrome(
     p,
-    user_data_dir="~/Library/Application Support/Google/Chrome",
-    profile_directory="Profile 2",
+    user_data_dir="~/Library/Application Support/playwright-byob/work-profile",
+    profile_directory=None,
 )
 ```
 
 ### Installed Chrome with a real user profile
 
-This is the most convenient option, and also the most fragile and sensitive.
-It can work for local one-off automation, but Chrome or the account provider may
-react to automation by showing verification prompts. Chrome can also lock a
-profile that is already open in a normal browser window, leaving automation
-unable to control the launched profile.
+This is not a reliable pattern for Chrome stable. Its platform default profile
+root contains personal profile state, and Chrome 136+ blocks the remote
+debugging pipe there. Chrome can also lock a profile that is already open in a
+normal browser window, leaving automation unable to control the launched
+profile. Use the default automation profile, a temporary directory, or a custom
+non-default automation directory instead.
 
 ### Export authenticated state
 
@@ -170,8 +215,10 @@ These variables are useful for local scripts and CI matrices:
 | `PLAYWRIGHT_BYOB_USER_DATA_DIR` | Explicit Chrome user data directory. |
 | `PLAYWRIGHT_BYOB_PROFILE_DIRECTORY` | Chrome profile folder, such as `Default` or `Profile 1`. |
 
-Explicit function arguments take precedence over detection, while the environment
-variables participate in automatic detection.
+Explicit function arguments take precedence over environment variables.
+`PLAYWRIGHT_BYOB_USER_DATA_DIR` behaves like an explicit path and does not need
+to exist before launch, but it must not be Chrome stable's platform default
+profile root.
 
 ## Customize flags
 

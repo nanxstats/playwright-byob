@@ -41,9 +41,11 @@ with sync_playwright() as p:
     context.close()
 ```
 
-The default launch uses installed Chrome, opens headed, uses the platform Chrome
-user data directory, selects the `Default` profile, disables Playwright's fixed
-viewport, and removes the `--enable-automation` default argument.
+The default launch uses installed Chrome, opens headed, uses a dedicated
+`playwright-byob` Chrome user data directory under the platform app data
+directory, selects the `Default` profile inside that directory, disables
+Playwright's fixed viewport, and removes the `--enable-automation` default
+argument. It does not use your daily Chrome profile.
 
 If Chrome is not detected, it raises `ChromeNotFoundError`; set
 `PLAYWRIGHT_BYOB_CHROME_PATH` or pass `browser_path=...` explicitly.
@@ -52,6 +54,12 @@ If the resolved user data directory appears to be open in another Chrome
 process, it raises `ChromeProfileInUseError` before launching. This lock check
 is best-effort because stale lock files can remain after a crash; pass
 `check_profile_lock=False` only when you know the lock is stale.
+
+Chrome 136 and newer ignore remote debugging switches for Chrome stable's
+platform default profile root. Playwright depends on `--remote-debugging-pipe`,
+so playwright-byob raises `ChromeRemoteDebuggingBlockedError` if you explicitly
+select that root with Chrome stable. Use the default dedicated directory, a
+temporary directory, or another non-default automation directory instead.
 
 ## Customize the browser or profile
 
@@ -63,8 +71,8 @@ with sync_playwright() as p:
     context = launch_chrome(
         p,
         browser_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        user_data_dir="~/Library/Application Support/Google/Chrome",
-        profile_directory="Profile 1",
+        user_data_dir="~/Library/Application Support/playwright-byob/work-profile",
+        profile_directory=None,
         args=["--window-size=1440,1000"],
         timeout=30_000,
     )
@@ -78,24 +86,31 @@ You can also use environment variables:
 
 Pass `browser_path=None` to skip installed Chrome detection and use
 Playwright's `channel="chrome"` path instead.
+`PLAYWRIGHT_BYOB_USER_DATA_DIR` behaves like an explicit path and must not point
+at Chrome stable's platform default profile root.
 
 ## Recommended profile patterns
 
 Using the installed Chrome binary and using your daily Chrome profile are
 separate choices. In practice, the most reliable paths are:
 
-1. **Installed Chrome with a temporary profile**.
+1. **Installed Chrome with the default automation profile**.
+   Call `launch_chrome(p)` with no profile arguments. State persists in a
+   package-owned non-default directory, separate from normal Chrome.
+2. **Installed Chrome with a temporary profile**.
    Use `tempfile.TemporaryDirectory()` as `user_data_dir` and
    `profile_directory=None`, then log in during the run.
    This avoids downloading Playwright Chromium without touching
    a personal Chrome profile.
-2. **Installed Chrome with a dedicated automation profile**.
-   Create a separate Chrome profile for automation and point `user_data_dir`
-   and `profile_directory` at it. Keep it out of day-to-day browsing.
-3. **Installed Chrome with a real user profile**.
-   This is convenient for local one-off scripts, but it can expose sensitive
-   state, conflict with a profile already open in Chrome, or trigger account
-   verification prompts.
+3. **Installed Chrome with a custom automation profile**.
+   Point `user_data_dir` at a dedicated non-default directory and usually set
+   `profile_directory=None`. Keep it out of day-to-day browsing.
+
+Do not point `user_data_dir` at Chrome stable's platform default profile root,
+such as `~/Library/Application Support/Google/Chrome`,
+`%LOCALAPPDATA%\Google\Chrome\User Data`, or `~/.config/google-chrome`.
+Chrome 136+ blocks remote debugging there, and real profiles can expose
+sensitive state or conflict with an already-running Chrome window.
 
 Playwright's authentication guide also describes saving authenticated browser
 state to JSON files with `context.storage_state(path=...)` and keeping those
