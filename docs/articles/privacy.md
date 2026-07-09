@@ -12,8 +12,8 @@ use a personal profile in automated tests.
 
 Prefer temporary directories, purpose-built Chrome profiles, or mock Playwright
 objects when verifying integration code. The safest automation pattern is often
-installed Chrome with a temporary `user_data_dir`, followed by explicit login
-during the run.
+installed Chrome with playwright-byob's default automation profile or a
+temporary `user_data_dir`, followed by explicit login during the run.
 
 Tests in this project must not read cookies, local storage, history, or other
 data from a real user Chrome profile.
@@ -21,6 +21,12 @@ data from a real user Chrome profile.
 Chrome may also lock a profile that is already open in a normal browser window.
 For reliable automation, use a dedicated Chrome profile or close the matching
 Chrome profile before launching Playwright.
+
+Chrome 136 and newer also ignore remote debugging switches for the platform
+default Chrome profile root. Playwright persistent contexts use
+`--remote-debugging-pipe`, so playwright-byob rejects that configuration before
+launching real Chrome. This is both a reliability issue and a useful boundary:
+automation should use a non-default directory instead of a daily Chrome profile.
 
 Some providers treat automation against a normal user profile as suspicious and
 may show "verify it is you" prompts or force a fresh login. That is a service
