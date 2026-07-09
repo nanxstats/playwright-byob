@@ -326,7 +326,7 @@ def test_build_config_accepts_missing_environment_user_data_dir(
     assert not user_data_dir.exists()
 
 
-def test_build_config_rejects_platform_default_chrome_root_for_real_chrome(
+def test_build_config_rejects_platform_default_chrome_root_for_stable_chrome(
     tmp_path: Path,
 ) -> None:
     home = tmp_path / "home"
@@ -345,7 +345,7 @@ def test_build_config_rejects_platform_default_chrome_root_for_real_chrome(
     message = str(exc_info.value)
     assert "Chrome 136" in message
     assert "--remote-debugging-pipe" in message
-    assert "default Chrome profile root" in message
+    assert "Chrome stable's platform default profile root" in message
     assert "user_data_dir='auto'" in message
     assert "non-default user_data_dir" in message
     assert "developer.chrome.com/blog/remote-debugging-port" in message
@@ -369,6 +369,36 @@ def test_build_config_rejects_environment_default_chrome_root_for_chrome_channel
                 USER_DATA_DIR_ENV: str(default_user_data_dir),
             },
         )
+
+
+def test_build_config_remote_debugging_guard_is_stable_chrome_only(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    stable_user_data_dir = (
+        home / "Library" / "Application Support" / "Google" / "Chrome"
+    )
+    beta = tmp_path / "Google Chrome Beta"
+    beta.write_text("fake beta chrome", encoding="utf-8")
+
+    beta_config = build_chrome_launch_config(
+        browser_path=beta,
+        user_data_dir=stable_user_data_dir,
+        profile_directory=None,
+        sys_platform="darwin",
+        env={"HOME": str(home)},
+    )
+    beta_channel_config = build_chrome_launch_config(
+        browser_path=None,
+        channel="chrome-beta",
+        user_data_dir=stable_user_data_dir,
+        profile_directory=None,
+        sys_platform="darwin",
+        env={"HOME": str(home)},
+    )
+
+    assert beta_config.user_data_dir == stable_user_data_dir
+    assert beta_channel_config.options["channel"] == "chrome-beta"
 
 
 def test_build_config_does_not_create_or_use_real_profile_in_auto_mode(

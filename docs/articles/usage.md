@@ -64,10 +64,10 @@ If the platform app data directory cannot be determined, it raises
 `user_data_dir=...` explicitly.
 
 Chrome 136 and newer ignore `--remote-debugging-port` and
-`--remote-debugging-pipe` when the user data directory is the platform default
-Chrome profile root. Playwright's `launch_persistent_context()` depends on
-`--remote-debugging-pipe`, so that configuration fails or times out. If you
-explicitly select the default Chrome root with real Chrome, playwright-byob
+`--remote-debugging-pipe` when the user data directory is Chrome stable's
+platform default profile root. Playwright's `launch_persistent_context()`
+depends on `--remote-debugging-pipe`, so that configuration fails or times out.
+If you explicitly select that root with Chrome stable, playwright-byob
 raises `ChromeRemoteDebuggingBlockedError` before launch. The Chrome team
 documents the restriction at
 <https://developer.chrome.com/blog/remote-debugging-port>.
@@ -102,10 +102,10 @@ profile root and you do not want to pass Chrome's `--profile-directory` flag.
 Pass `browser_path=None` only when you want to skip installed Chrome detection
 and use Playwright's branded `channel="chrome"` path.
 
-Do not use the platform default Chrome root, such as
+Do not use Chrome stable's platform default profile root, such as
 `~/Library/Application Support/Google/Chrome`,
 `%LOCALAPPDATA%\Google\Chrome\User Data`, or `~/.config/google-chrome`, as
-`user_data_dir` for real Chrome. Chrome 136+ ignores the remote debugging pipe
+`user_data_dir` for Chrome stable. Chrome 136+ ignores the remote debugging pipe
 there even when the path is passed explicitly.
 
 ## Recommended profile patterns
@@ -163,8 +163,8 @@ with sync_playwright() as p:
 ### Installed Chrome with a custom automation profile
 
 Use this when repeated login is expensive and you want a named automation
-directory. Keep it outside the platform default Chrome root and avoid using it
-for daily browsing.
+directory. Keep it outside Chrome stable's platform default profile root and
+avoid using it for daily browsing.
 
 ```python
 context = launch_chrome(
@@ -176,7 +176,7 @@ context = launch_chrome(
 
 ### Installed Chrome with a real user profile
 
-This is not a reliable pattern for current Chrome. The platform default Chrome
+This is not a reliable pattern for Chrome stable. Its platform default profile
 root contains personal profile state, and Chrome 136+ blocks the remote
 debugging pipe there. Chrome can also lock a profile that is already open in a
 normal browser window, leaving automation unable to control the launched
@@ -217,8 +217,8 @@ These variables are useful for local scripts and CI matrices:
 
 Explicit function arguments take precedence over environment variables.
 `PLAYWRIGHT_BYOB_USER_DATA_DIR` behaves like an explicit path and does not need
-to exist before launch, but it must not be the platform default Chrome root for
-real Chrome.
+to exist before launch, but it must not be Chrome stable's platform default
+profile root.
 
 ## Customize flags
 

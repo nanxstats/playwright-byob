@@ -36,23 +36,13 @@ _AUTOMATION_USER_DATA_DIR_PARTS = ("playwright-byob", "chrome-user-data")
 _REMOTE_DEBUGGING_RESTRICTION_URL = (
     "https://developer.chrome.com/blog/remote-debugging-port"
 )
-_RESTRICTED_CHROME_CHANNELS = {
-    "chrome",
-    "chrome-beta",
-    "chrome-dev",
-    "chrome-canary",
-}
-_RESTRICTED_CHROME_EXECUTABLE_NAMES = {
+_CHROME_STABLE_CHANNEL = "chrome"
+_CHROME_STABLE_EXECUTABLE_NAMES = {
     "chrome",
     "chrome.exe",
     "google chrome",
-    "google chrome beta",
-    "google chrome canary",
-    "google chrome dev",
     "google-chrome",
-    "google-chrome-beta",
     "google-chrome-stable",
-    "google-chrome-unstable",
 }
 
 
@@ -297,9 +287,9 @@ def build_chrome_launch_config(
     skip the best-effort check for Chrome profile lock artifacts.
 
     Chrome 136 and newer ignore Playwright's remote debugging pipe when the user
-    data directory is the platform default Chrome profile root. This function
-    raises ``ChromeRemoteDebuggingBlockedError`` for that configuration before
-    Playwright starts Chrome.
+    data directory is Chrome stable's platform default profile root. This
+    function raises ``ChromeRemoteDebuggingBlockedError`` for that configuration
+    before Playwright starts Chrome.
     """
     environ = os.environ if env is None else env
     resolved_user_data_dir = _resolve_user_data_dir(
@@ -608,13 +598,13 @@ def _raise_if_remote_debugging_blocked(
         env=env,
     ):
         return
-    if not _uses_chrome_remote_debugging_restriction(options):
+    if not _uses_stable_chrome_remote_debugging_restriction(options):
         return
 
     msg = (
         "Chrome 136 and newer ignore --remote-debugging-port and "
-        "--remote-debugging-pipe when the user data directory is the platform "
-        f"default Chrome profile root: {user_data_dir}. "
+        "--remote-debugging-pipe when the user data directory is Chrome "
+        f"stable's platform default profile root: {user_data_dir}. "
         "Playwright launch_persistent_context() depends on "
         "--remote-debugging-pipe, so this configuration will fail or time out. "
         "Use user_data_dir='auto' for playwright-byob's dedicated automation "
@@ -640,20 +630,19 @@ def _is_platform_default_chrome_user_data_dir(
     )
 
 
-def _uses_chrome_remote_debugging_restriction(options: Mapping[str, Any]) -> bool:
+def _uses_stable_chrome_remote_debugging_restriction(
+    options: Mapping[str, Any],
+) -> bool:
     executable_path = options.get("executable_path")
     if isinstance(executable_path, (str, os.PathLike)):
-        return _looks_like_restricted_chrome_executable(Path(executable_path))
+        return _looks_like_stable_chrome_executable(Path(executable_path))
 
     channel = options.get("channel")
-    return isinstance(channel, str) and channel in _RESTRICTED_CHROME_CHANNELS
+    return channel == _CHROME_STABLE_CHANNEL
 
 
-def _looks_like_restricted_chrome_executable(path: Path) -> bool:
-    path_text = os.fspath(path).casefold()
-    if "chrome for testing" in path_text or "chrome-for-testing" in path_text:
-        return False
-    return path.name.casefold() in _RESTRICTED_CHROME_EXECUTABLE_NAMES
+def _looks_like_stable_chrome_executable(path: Path) -> bool:
+    return path.name.casefold() in _CHROME_STABLE_EXECUTABLE_NAMES
 
 
 def _same_path(left: Path, right: Path, *, sys_platform: str | None) -> bool:

@@ -22,10 +22,10 @@ Chrome may also lock a profile that is already open in a normal browser window.
 For reliable automation, use a dedicated Chrome profile or close the matching
 Chrome profile before launching Playwright.
 
-Chrome 136 and newer also ignore remote debugging switches for the platform
-default Chrome profile root. Playwright persistent contexts use
+Chrome 136 and newer also ignore remote debugging switches for Chrome stable's
+platform default profile root. Playwright persistent contexts use
 `--remote-debugging-pipe`, so playwright-byob rejects that configuration before
-launching real Chrome. This is both a reliability issue and a useful boundary:
+launching Chrome stable. This is both a reliability issue and a useful boundary:
 automation should use a non-default directory instead of a daily Chrome profile.
 
 Some providers treat automation against a normal user profile as suspicious and

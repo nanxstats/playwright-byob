@@ -55,10 +55,10 @@ process, it raises `ChromeProfileInUseError` before launching. This lock check
 is best-effort because stale lock files can remain after a crash; pass
 `check_profile_lock=False` only when you know the lock is stale.
 
-Chrome 136 and newer ignore remote debugging switches for the platform default
-Chrome profile root. Playwright depends on `--remote-debugging-pipe`, so
-playwright-byob raises `ChromeRemoteDebuggingBlockedError` if you explicitly
-select that root with real Chrome. Use the default dedicated directory, a
+Chrome 136 and newer ignore remote debugging switches for Chrome stable's
+platform default profile root. Playwright depends on `--remote-debugging-pipe`,
+so playwright-byob raises `ChromeRemoteDebuggingBlockedError` if you explicitly
+select that root with Chrome stable. Use the default dedicated directory, a
 temporary directory, or another non-default automation directory instead.
 
 ## Customize the browser or profile
@@ -87,7 +87,7 @@ You can also use environment variables:
 Pass `browser_path=None` to skip installed Chrome detection and use
 Playwright's `channel="chrome"` path instead.
 `PLAYWRIGHT_BYOB_USER_DATA_DIR` behaves like an explicit path and must not point
-at the platform default Chrome root for real Chrome.
+at Chrome stable's platform default profile root.
 
 ## Recommended profile patterns
 
@@ -106,8 +106,8 @@ separate choices. In practice, the most reliable paths are:
    Point `user_data_dir` at a dedicated non-default directory and usually set
    `profile_directory=None`. Keep it out of day-to-day browsing.
 
-Do not point `user_data_dir` at the platform default Chrome profile root, such
-as `~/Library/Application Support/Google/Chrome`,
+Do not point `user_data_dir` at Chrome stable's platform default profile root,
+such as `~/Library/Application Support/Google/Chrome`,
 `%LOCALAPPDATA%\Google\Chrome\User Data`, or `~/.config/google-chrome`.
 Chrome 136+ blocks remote debugging there, and real profiles can expose
 sensitive state or conflict with an already-running Chrome window.
