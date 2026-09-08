@@ -1,5 +1,12 @@
 # Changelog
 
+## playwright-byob (development version)
+
+### Maintenance
+
+- Update GitHub Actions workflows to `actions/setup-python@v7` and refresh the
+  disabled Codecov step to `codecov/codecov-action@v7`.
+
 ## playwright-byob 0.2.0
 
 ### Improvements
