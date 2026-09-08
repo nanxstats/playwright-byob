@@ -1,5 +1,13 @@
 # Changelog
 
+## playwright-byob (development version)
+
+### Maintenance
+
+- Replace `hatchling` with `uv_build` as the build backend and declare the MIT
+  license using the PEP 639 `license` field to eliminate the `uv build`
+  warning.
+
 ## playwright-byob 0.2.0
 
 ### Improvements
